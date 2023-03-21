@@ -1,0 +1,184 @@
+#Analises espaciais - Reproduzidos para outras variáveis quando necessário
+#Mapas SAEB_2017 - Municipios
+
+library(sf)
+library(spdep)
+library(geobr)
+library(ggplot2)
+library(dplyr)
+library(rio)
+library(readr)
+library(ggspatial)
+
+
+options(timeout= 4000000)
+metadata<-download_metadata() # para ver codigos
+head(metadata)
+
+#Download all geographic - at a given year
+
+munici <- read_municipality(year = 2017) # acessando os limites municipais
+
+micro <- read_micro_region(code_micro = "all", year = 2017) # acesso as microrregiões
+
+estados <- read_state(code_state = "all") # acessando os limites estaduais
+
+br <- read_country(year = 2017) # acessando os limites do territ?rio nacional
+
+##
+# Puxando os dados a serem plotados
+
+
+#Carregando dados do banco de dados do STATA
+
+library(haven)
+Banco_de_dados_completo_niveis_socioeconomicos_PCAs_AB_AC_A_medias_munic_NSE <- read_dta("C:/Users/l_rod/Dissertação/Banco de dados/Banco_de_dados_completo_niveis_socioeconomicos_PCAs_AB__AC__A_medias_munic_NSE.dta")
+
+# juntar datasets munici e Banco_de_dados.... pelos descritores code_muni = id_municipio
+dataset_final = left_join(munici,Banco_de_dados_completo_niveis_socioeconomicos_PCAs_AB_AC_A_medias_munic_NSE, by=c("code_muni"="id_municipio"))
+
+
+###-----### Proficiência
+##Usando "W" e não "B" 
+#
+#B is the basic binary coding, 
+#W is row standardised (sums over all links to n), 
+#C is globally standardised (sums over all links to n)
+#U is equal to C divided by the number of neighbours (sums over all links to unity)
+#S is the variance-stabilizing coding (sums over all links to n)
+
+w<-poly2nb(dataset_final,row.names = dataset_final$mean_proficiencia_mt_munic)
+w
+ww<-nb2listw(w,style = 'W', zero.policy = TRUE)
+
+
+moran(dataset_final$mean_proficiencia_mt_munic,ww,n=length(ww$neighbours),S0=Szero(ww))
+
+moran.test(dataset_final$mean_proficiencia_mt_munic,ww,randomisation = FALSE)
+
+wm<-nb2mat(w,style = 'W')
+rwm<-mat2listw(wm,style='W')
+y<-dataset_final$mean_proficiencia_mt_munic
+
+moran.plot(y, rwm, xlab = "Proficiência Matemática", xlim=c(140,315), ylim=c(150,300),pch=4, labels = FALSE)
+
+####MAPAS - Segundo artigo 
+##-Proficiencia - MT
+
+plot(dataset_final)
+max(dataset_final$mean_proficiencia_mt_munic) # 1
+min(dataset_final$mean_proficiencia_mt_munic) # 0
+ggplot() +
+  geom_sf(data=dataset_final, aes(fill=mean_proficiencia_mt_munic), color= NA)+
+  labs(title="Proficiência Matemática",
+       caption='Fonte: SAEB 2017', size=1.5)+
+  scale_fill_distiller(palette = "YlOrBr", direction = 1, limits=c(159,321),
+                       name="Desempenho",
+                       na.value = 'transparent')+
+  annotation_scale(location='br')+
+  annotation_north_arrow(location='bl',style = north_arrow_orienteering())+
+  
+  theme_minimal()+
+  theme(legend.title = element_text(size = 9),
+        legend.key.width = unit(3.5,'mm'),
+        legend.text = element_text(size = 7)
+  )+
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_sf(ndiscr=0)
+  
+
+#### - Moran LOCAL - NSE e outras variáveis
+#### - Clusters - Mapa dos municipios 
+
+
+#dataset_final %>% dplyr::filter(abbrev_state=="SC")
+
+dataset_final_backup <- dataset_final
+
+dataset_final <- dataset_final_backup 
+
+#dataset_final <- dataset_final_backup %>% dplyr::filter(abbrev_state=="SC") %>% na.omit(.)
+
+dataset_final <- dataset_final_backup # %>% na.omit(.)
+
+dataset_final <- dataset_final %>% drop_na("mean_ns_pad_aluno")
+
+
+w<-poly2nb(dataset_final,row.names = dataset_final$mean_ns_pad_aluno)
+
+w
+
+#Neighbour list object:
+ # Number of regions: 5523 
+#Number of nonzero links: 31386 
+#Percentage nonzero weights: 0.102893 
+#Average number of links: 5.682781 
+#2 regions with no links:
+# 1523 3486
+
+
+ww<-nb2listw(w,style = 'W', zero.policy = TRUE)
+
+
+#local <- localmoran(x = dataset_final[["mean_ns_pad_aluno"]], listw = ww)
+
+local <- localmoran(x = as.numeric(dataset_final$mean_ns_pad_aluno), listw = ww)
+
+length(as.numeric(dataset_final$mean_ns_pad_aluno))
+
+table(is.na(dataset_final$ns_pad_aluno))
+
+as.numeric(dataset_final$mean_ns_pad_aluno)
+
+dataset_final$local_mi = local %>% as.data.frame(.) %>% select(local_mi = "Ii") %>% pull()
+dataset_final$local_mi_pvalue = local %>% as.data.frame(.) %>% select(local_mi_pvalue="Pr(z != E(Ii))") %>% pull()
+dataset_final$local_moran_quadr_mean <- attr(local, "quadr")$mean
+
+sig_alpha=0.10
+
+dataset_final <- dataset_final %>% 
+  mutate(
+    local_moran_quadr_mean = as.character(local_moran_quadr_mean),
+    local_morans_i = case_when(
+      local_mi_pvalue > sig_alpha ~ "Not Significant",
+      local_mi_pvalue <= sig_alpha ~ local_moran_quadr_mean
+    )) %>% 
+  mutate(
+    morans_i_local=ifelse(local_morans_i=="Not Significant", "Não significante", 
+                          ifelse(local_morans_i=="Low-Low", "Baixo-Baixo", 
+                                 ifelse(local_morans_i=="High-High", "Alto-Alto", 
+                                        ifelse(local_morans_i=="High-Low", "Alto-Baixo", 
+                                               ifelse(local_morans_i=="Low-High", "Baixo-Alto", local_morans_i)))))
+  )
+
+ggplot <- ggplot2::ggplot(dataset_final, ggplot2::aes(fill = morans_i_local))+
+  ggplot2::geom_sf(color="black", size=.09)+
+  ggplot2::labs(title = "Nível Socioeconômico do Aluno", caption = "", y = "Latitude", x = "Longitude")+
+  ggplot2::guides(fill=ggplot2::guide_legend(title="Moran I Local", reverse = T))+
+  scale_fill_manual(values = c("#D9564C", "#F59292", "#838ED9", "#4C53AA", "#DDDDDD"))+
+  ggplot2::theme_void()+
+  theme(legend.position="bottom")+
+  ggplot2::theme(plot.title = element_text(size=16))
+
+ggplot
+
+###### -  Alterações - 
+
+ggplot <- ggplot2::ggplot(dataset_final, ggplot2::aes(fill = morans_i_local))+
+  ggplot2::geom_sf(color= "#9b9b9b", size=.01)+
+  ggplot2::labs(title = "Nível Socioeconômico do Aluno", caption = "", y = "Latitude", x = "Longitude")+
+  ggplot2::guides(fill=ggplot2::guide_legend(title="Moran I Local", reverse = T))+
+    scale_fill_manual(values = c("#f14233", "#F59292", "#838ED9", "#4C53AA", "#DDDDDD"))+
+  ggplot2::theme_void()+
+  theme(legend.position="bottom")+
+  annotation_scale(location='br')+
+  annotation_north_arrow(location='bl',style = north_arrow_orienteering())+
+  ggplot2::theme(plot.title = element_text(size=16))
+
+ggplot
+
+
+
+
+
+
