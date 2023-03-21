@@ -1,0 +1,166 @@
+*Indice socioeconomico. Foram utilizadas as variavies da nota tecnica inep 2015 inse, 
+*retirando apenas as variaveis de nivel educacional dos pais as quais serão utilizadas como controles nas regresoes*
+
+*Televisao*
+
+ gen     tv=.
+ 
+ replace tv=0 if tx_resp_q005=="A"
+ replace tv=1 if tx_resp_q005=="B"
+ replace tv=2 if tx_resp_q005=="C"
+ replace tv=3 if tx_resp_q005=="D"
+ replace tv=4 if tx_resp_q005=="E"	
+ 
+ drop tx_resp_q005
+ 
+ 
+*Geladeira (valores alterados devido a 2011)*
+
+ gen     geladeira=.
+ 
+ replace geladeira=0 if tx_resp_q008=="A"
+ replace geladeira=1 if tx_resp_q008=="B"
+ replace geladeira=2 if tx_resp_q008=="C" | tx_resp_q008=="D" | tx_resp_q008=="E"
+ 
+ drop tx_resp_q008
+ 
+ *Frezeer 
+ 
+ gen 	 frezeer = 1 if tx_resp_q009 == "B" |  tx_resp_q009 == "C" | tx_resp_q009 == "D" | tx_resp_q009 == "E" | tx_resp_q010 == "B" |  tx_resp_q010 == "C" | tx_resp_q010 == "D" | tx_resp_q010 == "E"
+ replace frezeer = 0 if frezeer != 1
+ 
+ drop tx_resp_q009 tx_resp_q010
+ 
+ *Maquina de lavar roupa
+
+ 
+ gen     maquina_lavar_roupa=.
+ 
+ replace maquina_lavar_roupa=0 if tx_resp_q011=="A"
+ replace maquina_lavar_roupa=1 if tx_resp_q011=="B" | tx_resp_q011=="C" | tx_resp_q011=="D" |  tx_resp_q011=="E"	
+ 
+ drop tx_resp_q011
+ 
+ 
+ *Automovel*
+ 
+ gen     automovel=.
+ 
+ replace automovel=0 if tx_resp_q012=="A"
+ replace automovel=1 if tx_resp_q012=="B"
+ replace automovel=2 if tx_resp_q012=="C"
+ replace automovel=3 if tx_resp_q012=="D" | tx_resp_q012=="E"	
+ 
+ drop tx_resp_q012
+ 
+ *Computador*
+ 
+ gen     pc=.
+ 
+ replace pc=0 if tx_resp_q013=="A"
+ replace pc=1 if tx_resp_q013=="B" | tx_resp_q013=="C" | tx_resp_q013=="D" | tx_resp_q013=="E"	
+ 
+ drop tx_resp_q013
+
+ *Banheiro*
+ 
+ gen     banheiro=.
+ 
+ replace banheiro=0 if tx_resp_q014=="A"
+ replace banheiro=1 if tx_resp_q014=="B"
+ replace banheiro=2 if tx_resp_q014=="C"
+ replace banheiro=3 if tx_resp_q014=="D"
+ replace banheiro=4 if tx_resp_q014=="E"
+ 
+ drop tx_resp_q014
+ 
+ *Quarto por pessoa*
+ 
+ gen     quarto=0
+ 
+ replace quarto=1 if tx_resp_q015=="B"
+ replace quarto=2 if tx_resp_q015=="C"
+ replace quarto=3 if tx_resp_q015=="D"
+ replace quarto=4 if tx_resp_q015=="E"	
+ 
+ gen     n_pessoas=1 if tx_resp_q016=="A"
+ replace n_pessoas=2 if tx_resp_q016=="B"
+ replace n_pessoas=3 if tx_resp_q016=="C"
+ replace n_pessoas=4 if tx_resp_q016=="D"
+ replace n_pessoas=5 if tx_resp_q016=="E"	
+ replace n_pessoas=6 if tx_resp_q016=="F"
+ 
+ gen quarto_por_pessoa = quarto / n_pessoas
+ 
+ 
+ drop tx_resp_q015 tx_resp_q016
+ 
+ *Empregada*
+ 
+ gen     empregada=1 if tx_resp_q017 == "B" | tx_resp_q017 == "C" | tx_resp_q017 == "D" | tx_resp_q017 == "E"	
+ replace empregada=0 if tx_resp_q017 == "A"
+ 
+ drop tx_resp_q017
+ 
+ 
+ 
+ *Analise de componentes prinicpais para a criação do indice de nivel socioeconomico do aluno*
+ 
+ pca tv pc geladeira frezeer automovel banheiro quarto_por_pessoa empregada maquina_lavar_roupa
+ 
+ *Teste KMO, mede se as variáveis são suficientemente comuns para garantir que os componentes tenham poder de explicação*
+ 
+ estat kmo
+ 
+ *Teste, verifica o numero de componentes que deve ser utilizado*
+ 
+ fapara, pca reps(10)
+ 
+ *Criando variavel de nivel socioeconomico*
+ 
+ predict nivel_socioeco_aluno1,score
+ 
+*Padronizando nível socioeconômico*
+
+egen ns_pad_aluno=std(nivel_socioeco_aluno1)
+
+	
+**********************************************************************************************************************************************************************
+
+*Ajustando o banco para o empilhamento de todos os anos*
+
+*Renomeando para o empilhamento. OBS: varivel peso_aluno_lp e peso_aluno_mt são iguais*
+
+rename peso_aluno_mt peso
+
+*Filtrando alunos que não respoderam questões suficientes sobre o nivel_socio_economico*
+
+drop if nivel_socioeco_aluno1 == .
+
+*************************************************************************
+
+*PCA - Consumo de bens e serviços culturais
+**A, B e C
+*A - biblioteca, cinema, espetaculo
+*B - jornais, livros, revistas, gibi, internet
+*C - jornais, livros, revistas, gibi
+
+*Criando variável de consumo de cultura
+*PCA A + B = 1; A + C = 2; A = 3
+**
+pca frequenta_biblioteca frequenta_cinema frequenta_espetaculo le_jornais le_livros le_revista le_gibi le_internet
+
+*Teste KMO, mede se as variáveis são suficientemente comuns para garantir que os componentes tenham poder de explicação*
+estat kmo
+
+*Teste, verifica o numero de componentes que deve ser utilizado*
+*A imagem fica no apendice - Parallel Analysis
+fapara, pca reps(10)
+
+*Criando variavel de nivel de consumo de cultura 1
+predict consumo_cultura1,score
+
+*Padronizando nível consumo de cultura1*
+egen ns_pad_consumo_cultura_um=std(consumo_cultura1)
+
+********************************************************************************
