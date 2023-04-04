@@ -164,3 +164,27 @@ predict consumo_cultura1,score
 egen ns_pad_consumo_cultura_um=std(consumo_cultura1)
 
 ********************************************************************************
+
+**Regressões - Primeiro ensaio
+
+reg ns_pad_consumo_cultura_um ns_pad_aluno feminino proficiencia_lp_saeb 
+
+reg ns_pad_consumo_cultura_um ns_pad_aluno feminino proficiencia_lp_saeb pai_alfabetizado mae_alfabetizada pais_costumam_ler pais_incentivam_ler
+
+reg ns_pad_consumo_cultura_um ns_pad_aluno feminino proficiencia_lp_saeb pai_alfabetizado mae_alfabetizada pais_costumam_ler pais_incentivam_ler escola_urbana biblioteca escola_federal escolaridade_prof_port escolaridade_dir
+
+
+**Regressões - Segundo ensaio
+
+reg proficiencia_lp_saeb ns_pad_consumo_cultura_um
+
+reg proficiencia_lp_saeb ns_pad_consumo_cultura_um ns_pad_aluno feminino branco no_minimo_um_pai_alfabetizado pais_costumam_ler
+
+reg proficiencia_lp_saeb ns_pad_consumo_cultura_um ns_pad_aluno feminino branco no_minimo_um_pai_alfabetizado pais_costumam_ler escola_federal escola_urbana escolaridade_prof_port exp_prof_port escolaridade_dir exp_dir
+
+
+
+
+
+
+
