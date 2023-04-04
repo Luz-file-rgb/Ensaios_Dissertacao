@@ -1,3 +1,8 @@
+**Autor Lucas Rodrigues Luz
+**
+**Banco de dados Final - Se quiser poupar trabalho
+ *https://www.dropbox.com/sh/zfquldp7ixl0y21/AAAueoNCOB6o7Zm-mTqJuyFXa?dl=0
+
 *Indice socioeconomico. Foram utilizadas as variavies da nota tecnica inep 2015 inse, 
 *retirando apenas as variaveis de nivel educacional dos pais as quais serão utilizadas como controles nas regresoes*
 
@@ -164,6 +169,9 @@ predict consumo_cultura1,score
 egen ns_pad_consumo_cultura_um=std(consumo_cultura1)
 
 ********************************************************************************
+
+ **Banco de dados final
+ https://www.dropbox.com/sh/zfquldp7ixl0y21/AAAueoNCOB6o7Zm-mTqJuyFXa?dl=0
 
 **Regressões - Primeiro ensaio
 
