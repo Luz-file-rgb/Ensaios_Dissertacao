@@ -3,6 +3,10 @@
  
  *https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/microdados/saeb
  
+ 
+ **Se quiser poupar trabalho - Banco de dados Final
+ https://www.dropbox.com/sh/zfquldp7ixl0y21/AAAueoNCOB6o7Zm-mTqJuyFXa?dl=0
+ 
 **O objetivo é extrair todos os arquivos e fazer o merge no final -
 **Alterar os endereços
  
@@ -1070,6 +1074,9 @@ drop if nivel_socioeco_aluno1 == .
 gen ano = 2017
 
 save "C:\Users\l_rod\Desktop\Banco de Dados Final\filtro_merges_final_niveis_socioeconomicos_2017.dta"
+
+ **Banco de dados Final
+ https://www.dropbox.com/sh/zfquldp7ixl0y21/AAAueoNCOB6o7Zm-mTqJuyFXa?dl=0
 
 
 
